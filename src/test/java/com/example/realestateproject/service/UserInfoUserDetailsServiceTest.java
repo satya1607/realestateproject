@@ -20,6 +20,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import com.example.realestateproject.entity.UserInfo;
+import com.example.realestateproject.enums.UserRole;
 import com.example.realestateproject.repository.UserInfoRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,7 +38,7 @@ class UserInfoUserDetailsServiceTest {
         UserInfo user = new UserInfo();
         user.setUsername("john");
         user.setPassword("secret");
-        user.setRoles("ROLE_ADMIN");
+        user.setRole(UserRole.CUSTOMER);
 
         when(repository.findByUsername("john")).thenReturn(Optional.of(user));
 

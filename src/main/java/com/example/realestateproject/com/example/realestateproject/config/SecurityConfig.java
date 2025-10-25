@@ -174,30 +174,67 @@ public class SecurityConfig {
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
-
+    
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.csrf().disable()
-            .authorizeHttpRequests()
-                .requestMatchers("/register", "/login", "/css/**", "/js/**").permitAll()
-                .requestMatchers("/admin/**").hasAuthority("ADMIN")
-                .requestMatchers("/user/**").hasAuthority("CUSTOMER")
-                .anyRequest().authenticated()
-            .and()
-            .formLogin()
-                .loginPage("/login")
-                .loginProcessingUrl("/login")
-                .usernameParameter("username")
-                .passwordParameter("password")
-                .successHandler(new CustomAuthSuccessHandler())
-                .defaultSuccessUrl("/user", true)
-                .failureUrl("/login?error=true")
-            .and()
-            .logout()
-                .logoutUrl("/logout")
-                .logoutSuccessUrl("/login?logout=true");
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
+
+        http.csrf(csrf-> csrf.disable())
+                .authorizeHttpRequests(auth->auth
+                                .requestMatchers("/register", "/process_register", "/login", "/css/**", "/images/**").permitAll() //public accessible
+                              
+                                .requestMatchers("/admin/**").hasRole("ADMIN")
+                                .requestMatchers("/customer/**").hasRole("CUSTOMER")
+                                .requestMatchers("/").authenticated()
+                                .anyRequest().authenticated()
+                        ).formLogin(form->form
+                        .loginPage("/login")
+                        .loginProcessingUrl("/login")
+                        .successHandler((request, response, authentication) -> {
+                            Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
+                            if (authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+                                response.sendRedirect("/");
+                            } else if (authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"))) {
+                                response.sendRedirect("/");
+                            } else {
+                                response.sendRedirect("/login?error");
+                            }
+                        })
+                        .permitAll()
+                    )
+                    .logout(logout -> logout
+                        .logoutSuccessUrl("/login?logout")
+                        .permitAll()
+                    );
+                        
+                        
         return http.build();
     }
+
+
+//    @Bean
+//    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+//        http.csrf().disable()
+//            .authorizeHttpRequests()
+//                .requestMatchers("/register", "/login", "/css/**", "/js/**").permitAll()
+//                .requestMatchers("/admin/**").hasAuthority("ADMIN")
+//                .requestMatchers("/user/**").hasAuthority("CUSTOMER")
+//                .anyRequest().authenticated()
+//            .and()
+//            .formLogin()
+//                .loginPage("/login")
+//                .loginProcessingUrl("/login")
+//                .usernameParameter("username")
+//                .passwordParameter("password")
+//                .successHandler(new CustomAuthSuccessHandler())
+//                .defaultSuccessUrl("/user", true)
+//                .failureUrl("/login?error=true")
+//            .and()
+//            .logout()
+//                .logoutUrl("/logout")
+//                .logoutSuccessUrl("/login?logout=true");
+//        return http.build();
+//    }
 
     @Autowired
     public void configureGlobal(AuthenticationManagerBuilder auth) {

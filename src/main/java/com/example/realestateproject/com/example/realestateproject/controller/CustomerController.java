@@ -57,6 +57,7 @@ public class CustomerController {
 	   model.addAttribute("list", list);
 	  }else {
 	  List<PropertyDetails> list = service.getAllProperties();
+	  System.out.println(list);
 	  model.addAttribute("list", list);}
 	  return "index";
 	 }

@@ -62,37 +62,12 @@ public class LoginController {
 	                     Model model,
 	                     HttpSession session) {
 
-	     try {
-	         // Fetch user from DB
+	    
 	         UserInfo dbUser = loginService.login(username);
-
-	         // Check password
-	         if (!dbUser.getPassword().equals(password)) {
-	             model.addAttribute("error", "Invalid password!");
-	             return "login";
-	         }
-
-	         // Check role
-	         if (!dbUser.getRole().name().equals(role)) {
-	             model.addAttribute("error", "Role mismatch!");
-	             return "login";
-	         }
-
-	         // Save user info in session (optional)
-	         session.setAttribute("loggedInUser", dbUser);
-
-	         // Redirect based on role
-	         if (dbUser.getRole() == UserRole.ADMIN) {
-	             return "redirect:/admin";
-	         } else {
-	             return "redirect:/user";
-	         }
-
-	     } catch (Exception e) {
-	         model.addAttribute("error", "User not found!");
-	         return "login";
+	         
+           return "redirect:/";
 	     }
-	 }
+	 
     
     @GetMapping("/register")
     public String showRegisterForm(Model model){
@@ -110,34 +85,34 @@ public class LoginController {
 		return "redirect:/login";
 	}
     
-    @GetMapping("/user")
-    public String showUserDashboard(Model model){
-	 
-        return "user";
-    }
-    
-    @GetMapping("/admin")
-    public String showAdminDashboard(Model model){
-	 
-        return "admin";
-    }
-    
-//    @GetMapping("/dashboard")
-//    public String showDashboard(){
-//        return "dashboard";
-//    }
-
-//    @GetMapping("/admin/home")
-////    @PreAuthorize("hasRole('ADMIN')")
-//    public String adminhome(){
-//        return "admin";
-//    }
-
-//    @GetMapping("/customer/home")
-////    @PreAuthorize("hasRole('CUSTOMER')")
-//    public String userhome(){
+//    @GetMapping("/user")
+//    public String showUserDashboard(Model model){
+//	 
 //        return "user";
 //    }
+//    
+//    @GetMapping("/admin")
+//    public String showAdminDashboard(Model model){
+//	 
+//        return "admin";
+//    }
+    
+    @GetMapping("/dashboard")
+    public String showDashboard(){
+        return "dashboard";
+    }
+
+    @GetMapping("/admin/home")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String adminhome(){
+        return "admin";
+    }
+
+    @GetMapping("/customer/home")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public String userhome(){
+        return "user";
+    }
 	
 //	@Autowired
 //	private LoginService loginService;

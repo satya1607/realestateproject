@@ -12,23 +12,23 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-@Component
-public class CustomAuthSuccessHandler implements AuthenticationSuccessHandler{
+//@Component
+//public class CustomAuthSuccessHandler implements AuthenticationSuccessHandler{
+//
+//	@Override
+//    public void onAuthenticationSuccess(HttpServletRequest request,
+//                                        HttpServletResponse response,
+//                                        Authentication authentication)
+//                                        throws IOException, ServletException {
+//		 Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
+//
+//	        if (authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+//	            response.sendRedirect("/admin");
+//	        } else if (authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"))) {
+//	            response.sendRedirect("/user");
+//	        } else {
+//	            response.sendRedirect("/login?error=true");
+//	        }
+//	}
 
-	@Override
-    public void onAuthenticationSuccess(HttpServletRequest request,
-                                        HttpServletResponse response,
-                                        Authentication authentication)
-                                        throws IOException, ServletException {
-		 Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
-
-	        if (authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
-	            response.sendRedirect("/admin");
-	        } else if (authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"))) {
-	            response.sendRedirect("/user");
-	        } else {
-	            response.sendRedirect("/login?error=true");
-	        }
-	}
-
-}
+//}

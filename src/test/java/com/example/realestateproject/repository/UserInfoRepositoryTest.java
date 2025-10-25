@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 
 import com.example.realestateproject.entity.UserInfo;
+import com.example.realestateproject.enums.UserRole;
 
 @DataMongoTest
 class UserInfoRepositoryTest {
@@ -25,7 +26,7 @@ class UserInfoRepositoryTest {
 	        UserInfo user = new UserInfo();
 	        user.setUsername("john_doe");
 	        user.setPassword("secret");
-	        user.setRoles("USER");
+	        user.setRole(UserRole.CUSTOMER);
 	        userInfoRepository.save(user);
 
 	        // when

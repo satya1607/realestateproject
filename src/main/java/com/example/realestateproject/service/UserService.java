@@ -13,6 +13,8 @@ public class UserService {
 
 	@Autowired
 	private UserRepository userRepository;
+//	@Autowired
+//	private UserInfoRepository userInfoRepository;
 	
 	public void saveUser(User user) {
 		userRepository.save(user);

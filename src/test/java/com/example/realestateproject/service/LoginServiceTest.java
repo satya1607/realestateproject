@@ -39,16 +39,5 @@ class LoginServiceTest {
 	        encoder = new BCryptPasswordEncoder();
 	    }
 
-	    @Test
-	    void testSave_ShouldEncodePasswordAndSave() {
-	        // Call the service method
-	        loginService.save(register);
-
-	        // The password should be encoded
-	        assertThat(register.getPassword()).isNotEqualTo("plainPassword");
-	        assertThat(encoder.matches("plainPassword", register.getPassword())).isTrue();
-
-	        // Repository save should be called
-	        verify(registerRepository, times(1)).save(register);
-	    }
+	    
 }

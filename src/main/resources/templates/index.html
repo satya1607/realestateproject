@@ -17,9 +17,9 @@
     
     <div class="card" th:each="l : ${list}">
      
-     <div th:each="propertyDetails: ${PropertyDetails}" class="...">
+     <!-- <div th:each="propertyDetails: ${PropertyDetails}" class="...">
                
-			   <img th:src="@{'data:image/jpeg;base64,'+${propertyDetails.generateBase64Image()}}" alt="profile" class="...">
+			   <img th:src="@{'data:image/jpeg;base64,'+${propertyDetails.generateBase64Image()}}" alt="profile" class="...">-->
      
      
                     
@@ -32,10 +32,10 @@
                     </div>
                 </div>
             
+  <!-- </div>-->
   </div>
-  </div>
-
-  <button type="submit"><a th:href="@{/customer/create}">Post Your Property</a></button>
-
+   <br>
+  <button type="submit" style="background-color:yellow; color: white;"><a th:href="@{/customer/create}">Post Your Property</a></button>
+   <br>
 </body>
 </html>
