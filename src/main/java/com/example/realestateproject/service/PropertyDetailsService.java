@@ -24,8 +24,8 @@ public class PropertyDetailsService {
 	 /*
 	  * TODO: Get Properties By keyword
 	  */
-	 public List<PropertyDetails> getByKeyword(String keyword){
-	  return repository.findByKeyword(keyword);
+	 public List<PropertyDetails> getByKeyword(String keyword,Integer price){
+	  return repository.findByKeywordRegexOrPrice(keyword,price);
 	 }
 	 
 	 public void save(PropertyDetails propertyDetails, MultipartFile file) {
@@ -36,7 +36,7 @@ public class PropertyDetailsService {
 		      System.out.println("Some internal error occurred");
 		    }
       }
-	 public Optional<PropertyDetails> findById(Long imageId) {
+	 public Optional<PropertyDetails> findById(String imageId) {
 		    return repository.findById(imageId);
 		  }
 }

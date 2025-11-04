@@ -3,10 +3,12 @@ package com.example.realestateproject.controller;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,101 +16,120 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.example.realestateproject.com.example.realestateproject.controller.UserController;
 import com.example.realestateproject.entity.User;
+import com.example.realestateproject.entity.UserInfo;
+import com.example.realestateproject.enums.UserRole;
 import com.example.realestateproject.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import java.util.Arrays;
+import java.util.List;
 
-@ExtendWith(MockitoExtension.class)
+@AutoConfigureMockMvc
+@WebMvcTest(UserController.class)
 class UserControllerTest {
 
-	 @Mock
-	    private UserService userService;
+    @Autowired
+    private MockMvc mockMvc;
 
-	    @InjectMocks
-	    private UserController userController;
+    @MockBean
+    private UserService userService;
 
-	    private MockMvc mockMvc;
-	    private ObjectMapper objectMapper;
+    private UserInfo adminUser;
+    private UserInfo customerUser;
 
-	    @BeforeEach
-	    void setUp() {
-	        mockMvc = MockMvcBuilders.standaloneSetup(userController).build();
-	        objectMapper = new ObjectMapper();
-	    }
+    @BeforeEach
+    void setup() {
+        adminUser = new UserInfo();
+        ObjectId adminId = new ObjectId();
+        adminUser.setId(adminId);
+        adminUser.setUsername("admin@example.com");
+        adminUser.setPassword("pass");
+        adminUser.setRole(UserRole.ADMIN);
+        adminUser.setName("Admin Name");
 
-	    // ---------------- POST /admin/user/save ----------------
-	    @Test
-	    void testSaveUser() throws Exception {
-	        User user = new User();
-	        user.setId(1);
-	        user.setEmail("john@gmail.com");
+        customerUser = new UserInfo();
+        ObjectId custId = new ObjectId();
+        customerUser.setId(custId);
+        customerUser.setUsername("cust@example.com");
+        customerUser.setPassword("custpass");
+        customerUser.setRole(UserRole.CUSTOMER);
+        customerUser.setName("Customer Name");
+    }
 
-	        mockMvc.perform(post("/admin/user/save")
-	                .contentType(MediaType.APPLICATION_JSON)
-	                .content(objectMapper.writeValueAsString(user)))
-	               .andExpect(status().isOk());
+    @Test
+    @WithMockUser(username="adminUser", roles={"ADMIN"})
+    void displayUsers_ShouldReturnOnlyCustomersInModel() throws Exception {
+        // Arrange
+        List<UserInfo> allUsers = List.of(adminUser, customerUser);
+        when(userService.displayUsers()).thenReturn(allUsers);
 
-	        verify(userService, times(1)).saveUser(any(User.class));
-	    }
+        mockMvc.perform(get("/admin/user/display"))
+               .andExpect(status().isOk())
+               .andExpect(view().name("viewuserdetails"))
+               .andExpect(model().attributeExists("onlyCustomers"))
+               .andExpect(model().attribute("onlyCustomers", List.of(customerUser)));
 
-	    // ---------------- GET /admin/user/display ----------------
-	    @Test
-	    void testDisplayUsers() throws Exception {
-	        User user1 = new User();
-	        user1.setId(1); user1.setEmail("john@gmail.com");
+        verify(userService, times(1)).displayUsers();
+    }
+    @Test
+    @WithMockUser(username="adminUser", roles={"ADMIN"})
+    void showEditForm_WhenValidId_ShouldReturnEditFormWithUser() throws Exception {
+        ObjectId id = customerUser.getId();
+        when(userService.getUserById(id)).thenReturn(customerUser);
 
-	        User user2 = new User();
-	        user2.setId(2); user2.setEmail("alice@gmail.com");
+        mockMvc.perform(get("/admin/user/edit/{id}", id.toHexString()))
+               .andExpect(status().isOk())
+               .andExpect(view().name("edituserform"))
+               .andExpect(model().attributeExists("user"))
+               .andExpect(model().attribute("user", customerUser));
 
-	        when(userService.displayUsers()).thenReturn(Arrays.asList(user1, user2));
+        verify(userService, times(1)).getUserById(id);
+    }
 
-	        mockMvc.perform(get("/admin/user/display"))
-	               .andExpect(status().isOk())
-	               .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-	               .andExpect(jsonPath("$[0].id").value(1))
-	               .andExpect(jsonPath("$[0].email").value("john@gmail.com"))
-	               .andExpect(jsonPath("$[1].id").value(2))
-	               .andExpect(jsonPath("$[1].email").value("alice@gmail.com"));
+    @Test
+    @WithMockUser(username="admin", roles={"ADMIN"})
+    void deleteUser_ShouldRedirectToDisplay() throws Exception {
+        // Arrange
+        ObjectId id = customerUser.getId();
+        doNothing().when(userService).deleteUser(id);
 
-	        verify(userService, times(1)).displayUsers();
-	    }
+        mockMvc.perform(get("/admin/user/delete/{id}", id.toHexString()))
+               .andExpect(status().is3xxRedirection())
+               .andExpect(redirectedUrl("/admin/user/display"));
 
-	    // ---------------- PUT /admin/user/edit/{id} ----------------
-	    @Test
-	    void testEditUser() throws Exception {
-	        User updatedUser = new User();
-	        updatedUser.setId(1);
-	        updatedUser.setEmail("JohnUpdated@gmail.com");
+        verify(userService, times(1)).deleteUser(id);
+    }
 
-	        when(userService.editUser(eq(1), any(User.class))).thenReturn(updatedUser);
+    @Test
+    @WithMockUser(username="admin", roles={"ADMIN"})
+    void editUser_PostShouldRedirect() throws Exception {
+       
+        ObjectId id = customerUser.getId();
+        when(userService.editUser(eq(id), any(UserInfo.class))).thenReturn(customerUser);
 
-	        mockMvc.perform(put("/admin/user/edit/1")
-	                .contentType(MediaType.APPLICATION_JSON)
-	                .content(objectMapper.writeValueAsString(updatedUser)))
-	               .andExpect(status().isOk())
-	               .andExpect(jsonPath("$.id").value(1))
-	               .andExpect(jsonPath("$.email").value("JohnUpdated@gmail.com"));
+        mockMvc.perform(put("/admin/user/edit/{id}", id.toHexString())
+                     .with(csrf())       		
+                     .param("username", "newcust@example.com")
+                     .param("name", "New Customer")
+                     .param("password", "newpass")
+                     .param("role", "CUSTOMER"))
+                     .andExpect(status().is3xxRedirection())
+               .andExpect(redirectedUrl("/admin/user/display"));
 
-	        verify(userService, times(1)).editUser(eq(1), any(User.class));
-	    }
-
-	    // ---------------- DELETE /admin/user/delete/{id} ----------------
-	    @Test
-	    void testDeleteUser() throws Exception {
-	        mockMvc.perform(delete("/admin/user/delete/1"))
-	               .andExpect(status().isOk());
-
-	        verify(userService, times(1)).deleteUser(1);
-	    }
-
+        verify(userService, times(1)).editUser(eq(id), any(UserInfo.class));
+    }
 }

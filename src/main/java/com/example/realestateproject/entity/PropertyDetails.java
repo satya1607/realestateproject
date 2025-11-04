@@ -13,19 +13,14 @@ import com.example.realestateproject.enums.Type;
 @Document(collection = "PropertyDetails")
 public class PropertyDetails {
 	
-//	location,price,type,keywords
-	
 	@Id
-    private String _id;
-
-    @Indexed(unique = true) 
-    private Long id;
+    private String id;
     
 	private String title;
     
 	private String description;
     
-	private int price;
+	private Integer price;
     
 	private Type type;
     
@@ -35,6 +30,15 @@ public class PropertyDetails {
     
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private Date dateListed;
+    
+	public String getImageId() {
+		return imageId;
+	}
+
+	public void setImageId(String imageId) {
+		this.imageId = imageId;
+	}
+	private String imageId;
     
     private byte[] imageData;
 
@@ -50,18 +54,14 @@ public class PropertyDetails {
         return Base64.encodeBase64String(this.imageData);
     }
     
-	public String get_id() {
-		return _id;
-	}
-	public void set_id(String _id) {
-		this._id = _id;
-	}
-	public Long getId() {
+	public String getId() {
 		return id;
 	}
-	public void setId(Long id) {
+
+	public void setId(String id) {
 		this.id = id;
 	}
+
 	public String getOwnerId() {
 		return ownerId;
 	}
@@ -86,12 +86,15 @@ public class PropertyDetails {
 	public void setDescription(String description) {
 		this.description = description;
 	}
-	public int getPrice() {
+	
+	public Integer getPrice() {
 		return price;
 	}
-	public void setPrice(int price) {
+
+	public void setPrice(Integer price) {
 		this.price = price;
 	}
+
 	public Type getType() {
 		return type;
 	}

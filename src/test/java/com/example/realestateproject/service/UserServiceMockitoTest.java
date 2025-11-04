@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import org.bson.types.ObjectId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,106 +25,141 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.example.realestateproject.entity.User;
+import com.example.realestateproject.entity.UserInfo;
+import com.example.realestateproject.enums.UserRole;
+import com.example.realestateproject.repository.UserInfoRepository;
 import com.example.realestateproject.repository.UserRepository;
+
+import com.example.realestateproject.service.UserService;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceMockitoTest {
 
-	@Mock
-    private UserRepository userRepository;
+    @Mock
+    private UserInfoRepository userInfoRepository;
 
     @InjectMocks
     private UserService userService;
 
-    private User user1;
-    private User user2;
+    private UserInfo user1;
+    private ObjectId id1;
 
     @BeforeEach
-    void setup() {
-        user1 = new User();
-        user1.setId(1);
-        user1.setName("Alice");
-
-        user2 = new User();
-        user2.setId(2);
-        user2.setName("Bob");
+    void setUp() {
+        id1 = new ObjectId();
+        user1 = new UserInfo();
+        // Assuming you added a setter for id or _id. Adjust accordingly.
+        user1.setId(id1);            // or set _id field if needed
+        user1.setUsername("john.doe@example.com");
+        user1.setPassword("encryptedPass");
+        user1.setRole(UserRole.CUSTOMER);
+        user1.setName("John Doe");
     }
 
-    // ------------------ saveUser ------------------
     @Test
-    void testSaveUser() {
-        when(userRepository.save(user1)).thenReturn(user1);
+    void saveUser_ShouldCallRepositorySave() {
+        // Arrange
+        when(userInfoRepository.save(user1)).thenReturn(user1);
 
+        // Act
         userService.saveUser(user1);
 
-//        assertThat(saved).isNotNull();
-//        assertThat(saved.getName()).isEqualTo("Alice");
-        verify(userRepository, times(1)).save(user1);
-    }
-
-    // ------------------ displayUsers ------------------
-    @Test
-    void testDisplayUsers() {
-        when(userRepository.findAll()).thenReturn(Arrays.asList(user1, user2));
-
-        List<User> users = userService.displayUsers();
-
-        assertThat(users).hasSize(2);
-        assertThat(users).containsExactly(user1, user2);
-        verify(userRepository, times(1)).findAll();
-    }
-
-    // ------------------ deleteUser ------------------
-    @Test
-    void testDeleteUser_Success() {
-//        when(userRepository.existsById(1)).thenReturn(true);
-    	doNothing().when(userRepository).deleteById(1);
-        userService.deleteUser(1);
-
-        verify(userRepository, times(1)).deleteById(1);
+        // Assert
+        verify(userInfoRepository, times(1)).save(user1);
     }
 
     @Test
-    void testDeleteUser_UserNotFound() {
-    	lenient().when(userRepository.existsById(3)).thenReturn(false);
+    void displayUsers_ShouldReturnAllUsers() {
+        // Arrange
+        UserInfo user2 = new UserInfo();
+        ObjectId id2 = new ObjectId();
+        user2.setId(id2);
+        user2.setUsername("jane.doe@example.com");
+        user2.setPassword("pass2");
+        user2.setRole(UserRole.ADMIN);
+        user2.setName("Jane Doe");
 
-//        assertThatThrownBy(() -> userService.deleteUser(3))
-//            .isInstanceOf(IllegalArgumentException.class)
-//            .hasMessageContaining("User with id 3 not found");
+        List<UserInfo> allUsers = List.of(user1, user2);
+        when(userInfoRepository.findAll()).thenReturn(allUsers);
 
-        verify(userRepository, never()).deleteById(3);
+        // Act
+        List<UserInfo> result = userService.displayUsers();
+
+        // Assert
+        assertThat(result).hasSize(2).contains(user1, user2);
+        verify(userInfoRepository, times(1)).findAll();
     }
 
-    // ------------------ editUser ------------------
     @Test
-    void testEditUser_Success() {
-        User updatedUser = new User();
-        updatedUser.setName("Alice Updated");
+    void getUserById_WhenFound_ShouldReturnUser() {
+        // Arrange
+        when(userInfoRepository.findById(id1)).thenReturn(Optional.of(user1));
 
-        when(userRepository.findById(1)).thenReturn(Optional.of(user1));
-        when(userRepository.save(any(User.class))).thenReturn(updatedUser);
+        // Act
+        UserInfo result = userService.getUserById(id1);
 
-        User result = userService.editUser(1, updatedUser);
+        // Assert
+        assertThat(result).isEqualTo(user1);
+        verify(userInfoRepository, times(1)).findById(id1);
+    }
 
+    @Test
+    void getUserById_WhenNotFound_ShouldThrowException() {
+        // Arrange
+        when(userInfoRepository.findById(id1)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> userService.getUserById(id1));
+        verify(userInfoRepository, times(1)).findById(id1);
+    }
+
+    @Test
+    void deleteUser_ShouldCallRepositoryDeleteById() {
+        // Act
+        userService.deleteUser(id1);
+
+        // Assert
+        verify(userInfoRepository, times(1)).deleteById(id1);
+    }
+
+    @Test
+    void editUser_WhenUserExists_ShouldUpdateAndSave() {
+        // Arrange
+        when(userInfoRepository.findById(id1)).thenReturn(Optional.of(user1));
+
+        UserInfo update = new UserInfo();
+        update.setUsername("updated@example.com");
+        update.setPassword("newPass");
+        update.setRole(UserRole.CUSTOMER);
+        update.setName("Updated Name");
+
+        when(userInfoRepository.save(any(UserInfo.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        UserInfo result = userService.editUser(id1, update);
+
+        // Assert
         assertThat(result).isNotNull();
-        assertThat(result.getName()).isEqualTo("Alice Updated");
-        verify(userRepository, times(1)).findById(1);
-        verify(userRepository, times(1)).save(updatedUser);
+        assertThat(result.getUsername()).isEqualTo("updated@example.com");
+        assertThat(result.getName()).isEqualTo("Updated Name");
+        verify(userInfoRepository, times(1)).findById(id1);
+        verify(userInfoRepository, times(1)).save(update);
     }
 
     @Test
-    void testEditUser_UserNotFound() {
-    
-        User updatedUser = new User();
-        updatedUser.setName("NonExistent");
+    void editUser_WhenUserDoesNotExist_ShouldReturnNull() {
+        // Arrange
+        when(userInfoRepository.findById(id1)).thenReturn(Optional.empty());
 
-        lenient().when(userRepository.findById(5)).thenReturn(Optional.empty());
+        UserInfo update = new UserInfo();
+        update.setUsername("will.not.save@example.com");
 
-//        assertThatThrownBy(() -> userService.editUser(5, updatedUser))
-//            .isInstanceOf(IllegalArgumentException.class)
-//            .hasMessageContaining("User with id 5 not found");
+        // Act
+        UserInfo result = userService.editUser(id1, update);
 
-//        verify(userRepository, times(1)).findById(5);
-        verify(userRepository, never()).save(updatedUser);
+        // Assert
+        assertThat(result).isNull();
+        verify(userInfoRepository, times(1)).findById(id1);
+        verify(userInfoRepository, never()).save(any(UserInfo.class));
     }
 }

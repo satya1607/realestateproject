@@ -6,37 +6,32 @@
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js" integrity="sha384-eMNCOe7tC1doHpGoWe/6oMVemdAVTMs2xqW4mwXrXsW0L84Iytr2wi5v2QjrP/xp" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.min.js" integrity="sha384-cn7l7gDp0eyniUwwAZgrzD06kc/tftFf19TOAs2zVinnD/C7E91j9yyk5//jjpt/" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-<title>SEARCH</title>
+<title>Admin Dashboard</title>
 </head>
 <body>
 <div th:replace="fragments/_navbar::navbar"></div>
 
 <h2 align="center">World's Largest NoBrokerage Property Site </h2>
+<div class="d-flex justify-content-center">
+<button type="submit" style="background-color:yellow; color: white;"><a th:href="@{/admin/user/display}">ViewUsers</a></button>
+</div>
+<h2>Properties List</h2>
   
-  <div class="row row-cols-1 row-cols-md-3 g-3">            
-    
+  <div class="row row-cols-1 row-cols-md-3 g-3">               
     <div class="card" th:each="l : ${list}">
-     
-     <!-- <div th:each="propertyDetails: ${PropertyDetails}" class="...">
-               
-			   <img th:src="@{'data:image/jpeg;base64,'+${propertyDetails.generateBase64Image()}}" alt="profile" class="...">-->
-     
-     <!-- <img class="card-img-top" th:src="'data:image/jpeg;base64,' + ${imageMap[list.imageId]}" alt="Property Image">-->
                  
           <div class="card-body">
-          <img th:src="${'data:image/jpeg;base64,' + l.generateBase64Image()}"
-         alt="Property Image" class="img-fluid" />    
+        
           <p><strong>Title</strong> <span th:text="${l.title}">Title</span></p>
           <p><strong>Description:</strong> <span th:text="${l.description}">Description</span></p>
           <p><strong>Price:</strong> <span th:text="${l.price}">Price</span></p>
           <p><strong>Location:</strong> <span th:text="${l.location}">Location</span></p>
-                    
-          </div>
+                   
+            <a href="#" class="btn btn-primary">Approve</a> 
+           <button type="submit" ><a class="btn btn-primary" th:href="@{/admin/delete/{id}(id=${l.id})}">Delete</a></button>
+                       
+                 </div>
+                </div>
   </div>
-  
-  </div>
-   <br>
-  <button type="submit" style="background-color:yellow; color: white;"><a th:href="@{/customer/create}">Post Your Property</a></button>
-   <br>
 </body>
 </html>

@@ -17,64 +17,63 @@ import com.example.realestateproject.enums.Type;
 @DataMongoTest
 class PropertyDetailsRepositoryTest {
 
-	 @Autowired
-	    private PropertyDetailsRepository propertyDetailsRepository;
+	@Autowired
+    private PropertyDetailsRepository repository;
 
-	    @Test
-	    void testFindByKeyword_ShouldMatchLocation() {
-	        // given
-	        PropertyDetails property1 = new PropertyDetails();
-	        property1.setLocation("Hyderabad");
-	        property1.setType(Type.RENT);
-	        property1.setPrice(5000000);
-	        propertyDetailsRepository.save(property1);
+    @BeforeEach
+    void setUp() {
+        repository.deleteAll();
 
-	        PropertyDetails property2 = new PropertyDetails();
-	        property2.setLocation("Bangalore");
-	        property2.setType(Type.SALE);
-	        property2.setPrice(8000000);
-	        propertyDetailsRepository.save(property2);
+        PropertyDetails p1 = new PropertyDetails();
+        p1.setTitle("Cozy Apartment");
+        p1.setDescription("Nice city view");
+        p1.setLocation("New York");
+        p1.setPrice(1000);
+        p1.setType(Type.SALE);
+        repository.save(p1);
 
-	        // when
-	        List<PropertyDetails> results = propertyDetailsRepository.findByKeyword("WHITEFIELD");
+        PropertyDetails p2 = new PropertyDetails();
+        p2.setTitle("Luxury Villa");
+        p2.setDescription("Sea side");
+        p2.setLocation("Miami");
+        p2.setPrice(2000);
+        p2.setType(Type.RENT);
+        repository.save(p2);
 
-	        // then
-	        assertThat(results).isNotEmpty();
-	        assertThat(results.get(0).getLocation()).isEqualTo("WHITEFIELD");
-	    }
+        PropertyDetails p3 = new PropertyDetails();
+        p3.setTitle("Budget Flat");
+        p3.setDescription("Nearby station");
+        p3.setLocation("New York Suburb");
+        p3.setPrice(500);
+        p3.setType(Type.SALE);
+        repository.save(p3);
+    }
 
-	    @Test
-	    void testFindByKeyword_ShouldMatchType() {
-	        PropertyDetails property = new PropertyDetails();
-	        property.setLocation("Chennai");
-	        property.setType(Type.RENT);
-	        property.setPrice(6000000);
-	        propertyDetailsRepository.save(property);
+    @Test
+    void whenKeywordMatchesLocation_thenReturnsMatchingRecords() {
+        List<PropertyDetails> results = repository.findByKeywordRegexOrPrice("York", null);
+        assertThat(results).isNotEmpty();
+        assertThat(results).allMatch(p -> p.getLocation().toLowerCase().contains("york"));
+    }
 
-	        List<PropertyDetails> results = propertyDetailsRepository.findByKeyword("House");
+    @Test
+    void whenKeywordMatchesType_thenReturnsMatchingRecords() {
+        // Suppose type is string form, replace accordingly
+        List<PropertyDetails> results = repository.findByKeywordRegexOrPrice("SALE", null);
+        assertThat(results).hasSize(2);
+        assertThat(results.get(0).getTitle()).isEqualTo("Cozy Apartment");
+    }
 
-	        assertThat(results).isNotEmpty();
-	        assertThat(results.get(0).getType()).isEqualTo(Type.RENT);
-	    }
+    @Test
+    void whenPriceMatchesExactly_thenReturnsMatchingRecord() {
+        List<PropertyDetails> results = repository.findByKeywordRegexOrPrice("nomatch", 1000);
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getPrice()).isEqualTo(1000);
+    }
 
-	    @Test
-	    void testFindByKeyword_ShouldMatchPrice() {
-	        PropertyDetails property = new PropertyDetails();
-	        property.setLocation("Delhi");
-	        property.setType(Type.RENT);
-	        property.setPrice(7000000);
-	        propertyDetailsRepository.save(property);
-
-	        List<PropertyDetails> results = propertyDetailsRepository.findByKeyword("7000");
-
-	        assertThat(results).isNotEmpty();
-	        assertThat(results.get(0).getPrice()).isEqualTo(40000);
-	    }
-
-	    @Test
-	    void testFindByKeyword_NoMatch() {
-	        List<PropertyDetails> results = propertyDetailsRepository.findByKeyword("NonExisting");
-	        assertThat(results).isNotEmpty();
-	    }
-
+    @Test
+    void whenNoMatch_thenReturnsEmpty() {
+        List<PropertyDetails> results = repository.findByKeywordRegexOrPrice("UnknownCity", 9999);
+        assertThat(results).isEmpty();
+    }
 }

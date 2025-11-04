@@ -23,7 +23,7 @@ public class CustomerService {
 	public List<PropertyDetails> getProperties(){
 		return propertyDetailsRepository.findAll();
 	}
-	public PropertyDetails editProperty(Long id,PropertyDetails propertyDetails) {
+	public PropertyDetails editProperty(String id,PropertyDetails propertyDetails) {
 		Optional<PropertyDetails> existingProperty=propertyDetailsRepository.findById(id);
 		if(existingProperty==null) {
 			return null;
@@ -32,7 +32,12 @@ public class CustomerService {
 		return propertyDetailsRepository.save(propertyDetails);	
 	}
 	
-	public void deleteProperty(Long id) {
+	 public PropertyDetails getPropertyById(String id) throws Exception {
+	        return propertyDetailsRepository.findById(id)
+	            .orElseThrow(() -> new Exception("Property not found with id: " + id));
+	    }
+	
+	public void deleteProperty(String id) {
 		 propertyDetailsRepository.deleteById(id);
 	}
 	

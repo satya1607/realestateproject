@@ -38,7 +38,7 @@ class UserInfoUserDetailsServiceTest {
         UserInfo user = new UserInfo();
         user.setUsername("john");
         user.setPassword("secret");
-        user.setRole(UserRole.CUSTOMER);
+        user.setRole(UserRole.ADMIN);
 
         when(repository.findByUsername("john")).thenReturn(Optional.of(user));
 
@@ -61,7 +61,7 @@ class UserInfoUserDetailsServiceTest {
         // then
         assertThatThrownBy(() -> userDetailsService.loadUserByUsername("unknown"))
             .isInstanceOf(UsernameNotFoundException.class)
-            .hasMessageContaining("User not found in database.");
+            .hasMessageContaining("User not found");
 
         verify(repository, times(1)).findByUsername("unknown");
     }

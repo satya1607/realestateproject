@@ -5,6 +5,7 @@ import java.util.Map;
 
 //import org.apache.catalina.User;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -25,12 +26,15 @@ import org.springframework.web.bind.annotation.RestController;
 //import com.example.quizapplication.entity.TestPOJO;
 //import com.example.quizapplication.enums.UserRole;
 import com.example.realestateproject.entity.Login;
+import com.example.realestateproject.entity.PropertyDetails;
 import com.example.realestateproject.entity.Register;
 import com.example.realestateproject.entity.UserInfo;
 import com.example.realestateproject.enums.UserRole;
 import com.example.realestateproject.repository.UserInfoRepository;
 import com.example.realestateproject.repository.UserRepository;
 import com.example.realestateproject.service.LoginService;
+import com.example.realestateproject.service.PropertyDetailsService;
+import com.example.realestateproject.service.UserService;
 
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -46,9 +50,16 @@ public class LoginController {
 	
 	@Autowired
 	private LoginService loginService;
+	
+	@Autowired
+	private PropertyDetailsService service;
 
     @Autowired
+    @Lazy
     private PasswordEncoder passwordEncoder;
+    
+    @Autowired
+    private UserService userService;
     
     @GetMapping("/login")
     public String showLoginForm(){
@@ -64,8 +75,11 @@ public class LoginController {
 
 	    
 	         UserInfo dbUser = loginService.login(username);
-	         
-           return "redirect:/";
+	         if (dbUser.getRole() == UserRole.ADMIN) {
+	             return "redirect:/admindashboard";
+	         } else {
+	             return "redirect:/userdashboard";
+	         }
 	     }
 	 
     
@@ -78,109 +92,27 @@ public class LoginController {
     @PostMapping("/register")
 	public String signUpUser(@ModelAttribute UserInfo user){
 		System.out.println("Method called");
-//		user.setPassword(passwordEncoder.encode(user.getPassword()));
 
 		loginService.createUser(user);
 
 		return "redirect:/login";
 	}
     
-//    @GetMapping("/user")
-//    public String showUserDashboard(Model model){
-//	 
-//        return "user";
-//    }
-//    
-//    @GetMapping("/admin")
-//    public String showAdminDashboard(Model model){
-//	 
-//        return "admin";
-//    }
-    
-    @GetMapping("/dashboard")
-    public String showDashboard(){
-        return "dashboard";
-    }
-
-    @GetMapping("/admin/home")
+    @GetMapping("/admindashboard")
     @PreAuthorize("hasRole('ADMIN')")
-    public String adminhome(){
-        return "admin";
+    public String showAdminDashboard(Model model){
+    	List<PropertyDetails> list = service.getAllProperties();
+    	 model.addAttribute("list", list);
+        return "admindashboard";
     }
 
-    @GetMapping("/customer/home")
+    @GetMapping("/userdashboard")
     @PreAuthorize("hasRole('CUSTOMER')")
-    public String userhome(){
-        return "user";
+    public String userhome(Model model){
+    	List<PropertyDetails> list = service.getAllProperties();
+   	    model.addAttribute("list", list);
+        return "userdashboard";
     }
 	
-//	@Autowired
-//	private LoginService loginService;
-//	
-//	@Autowired
-//	private AuthenticationManager authenticationManager;
-//	@Autowired
-//	private JWTUtil jwtUtil;
-	
-//	public record LoginRequest(@NotBlank String username,@NotBlank String password) {
-//		
-//	}
-//	
-//	@GetMapping("/")
-//	public String login(Model m) {
-////		m.addAttribute("login", new Login());
-//		return "login";
-//	}
-	
-//	@GetMapping("/hello")
-//	public String hello() {
-//		User user=(User)SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-//		System.out.println("Authenticated user:"+user.getUsername()+",Authorities:"
-//				+ user.getAuthorities());
-//		if(user.getAuthorities().stream().anyMatch(auth->auth.getAuthority().equals
-//				("ROLE_ADMIN"))) {
-//			System.out.println("Admin user able to access private resources");
-//		}else {
-//			System.out.println("Regular user detected:limited access");
-//		}
-//		return "Hello World!";
-//	}
 
-	
-//    @PostMapping("/login")
-//    public String login(@ModelAttribute("login") Login login) {
-//    	try {
-//    		Authentication auth=authenticationManager.authenticate(new 
-//    				UsernamePasswordAuthenticationToken(login.getUsername(),login.getPassword()));
-//    		String token=jwtUtil.generateToken(auth.getName());
-//    		ResponseEntity.ok(Map.of("accessToken",token,"tokenType","Bearer"));
-//    		return "home";
-//    	}catch(Exception e) {
-//    		throw new RuntimeException("Invalid username or password",e);
-//    	}
-    
-//    	String uname=login.getUsername();
-//    	String pass=login.getPassword();
-//    	if(uname.equals("Admin") && pass.equals("Admin@123")){
-//    		m.addAttribute("uname",uname);
-//    		m.addAttribute("pass",pass);
-//    		return "welcome to dashboard";
-//    	}
-//    	m.addAttribute("error","Incorrect Username & Password");
-//		return "welcome to dashboard";
-//    }
-//    
-//    @GetMapping("/register")
-//	public String register(Model m) {
-//    	m.addAttribute("register", new Register());
-//		return "register";
-//	}
-//    
-//    @PostMapping("/register")
-//    public String registerUser(@ModelAttribute("register") Register register) {
-//        loginService.save(register);
-//        return "redirect:/register?success";
-////        return "redirect:/login";
-//    }
-    
 }

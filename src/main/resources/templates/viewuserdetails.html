@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="ISO-8859-1">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js" integrity="sha384-eMNCOe7tC1doHpGoWe/6oMVemdAVTMs2xqW4mwXrXsW0L84Iytr2wi5v2QjrP/xp" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.min.js" integrity="sha384-cn7l7gDp0eyniUwwAZgrzD06kc/tftFf19TOAs2zVinnD/C7E91j9yyk5//jjpt/" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<title>View User Details</title>
+</head>
+<body>
+<div th:replace="fragments/_navbar::navbar"></div>
+
+<h2 align="center">World's Largest NoBrokerage Property Site </h2>
+  
+  <div class="row row-cols-1 row-cols-md-3 g-3">            
+    
+    <div class="card" th:each="l : ${onlyCustomers}">
+             <div class="card-body">
+              <h5>Users list</h5>
+                                  
+           <p><strong>ID:</strong> <span th:text="${l.id}">ID</span></p>
+          <p><strong>Name:</strong> <span th:text="${l.name}">Name</span></p>
+          <p><strong>Username:</strong> <span th:text="${l.username}">Username</span></p>
+          <p><strong>Password:</strong> <span th:text="${l.password}">Password</span></p>
+           <p><strong>Role:</strong> <span th:text="${l.role.name}">Role</span></p>             
+                       
+               <button type="submit" style="background-color:yellow; color: white;"><a th:href="@{/admin/user/edit/{id}(id=${l.id})}">Edit</a></button>
+               <button type="submit" style="background-color:yellow; color: white;"><a th:href="@{/admin/user/delete/{id}(id=${l.id})}">Delete</a></button>
+            </div>
+          </div>
+            
+  </div>
+   <br>
+</body>
+</html>

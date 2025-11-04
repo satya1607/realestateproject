@@ -17,6 +17,10 @@ class AdminRepositoryTest {
 	 @Autowired
 	    private AdminRepository adminRepository;
 
+	 @BeforeEach
+	    void setUp() {
+	        adminRepository.deleteAll();
+	 }
 	    @Test
 	    void testFindByUsername() {
 	        Admin admin = new Admin();

@@ -20,6 +20,11 @@ class UserInfoRepositoryTest {
 	 @Autowired
 	    private UserInfoRepository userInfoRepository;
 
+	 @BeforeEach
+	    void setUp() {
+	        userInfoRepository.deleteAll();
+	    }
+	 
 	    @Test
 	    void testFindByUsername() {
 	        // given
@@ -33,7 +38,9 @@ class UserInfoRepositoryTest {
 	        Optional<UserInfo> result = userInfoRepository.findByUsername("john_doe");
 
 	        // then
-	        assertThat(result).isPresent();
-	        assertThat(result.get().getUsername()).isEqualTo("john_doe");
+	      
+	        assertEquals("john_doe", result.get().getUsername());
+	        assertThat(result.isPresent());
+	
 	    }
 }

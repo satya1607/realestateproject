@@ -1,6 +1,7 @@
 package com.example.realestateproject.service;
 
 import java.io.IOException;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -21,19 +22,21 @@ public class ImageService {
 	    return imageRepository.findAll();
 	}
 
-	public Optional getImageById(String id) {
+	public Optional<Image> getImageById(Long id) {
 	    return imageRepository.findById(id);
 	}
 	
-	public void save(Image image, MultipartFile file) {
-        try {
-            image.setData(file.getBytes());
-            imageRepository.save(image);
-        } catch (IOException ex) {
-            Logger.getLogger(ImageService.class.getName()).log(Level.SEVERE, null, ex);
-        }
+	public Image save(Image image,MultipartFile file) throws IOException {
+//		 Image image = new Image();
+	        image.setImageName(file.getOriginalFilename());      // store original filename
+	        image.setContentType(file.getContentType());    // store file type
+	        image.setData(file.getBytes());                 // store file bytes
+
+	        return imageRepository.save(image);
          
     }
-
+	 public String convertToBase64(Image image) {
+	        return Base64.getEncoder().encodeToString(image.getData());
+	    }
 	
 }

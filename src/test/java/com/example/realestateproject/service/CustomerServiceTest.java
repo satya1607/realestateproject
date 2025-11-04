@@ -2,6 +2,7 @@ package com.example.realestateproject.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -11,6 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,82 +27,132 @@ import com.example.realestateproject.repository.PropertyDetailsRepository;
 @ExtendWith(MockitoExtension.class)
 class CustomerServiceTest {
 
-	 @Mock
-	    private PropertyDetailsRepository repository;
+    @Mock
+    private PropertyDetailsRepository repository;
 
-	    @InjectMocks
-	    private CustomerService service;
+    @InjectMocks
+    private CustomerService customerService;
 
-	    private PropertyDetails property1;
-	    private PropertyDetails property2;
+    private PropertyDetails prop1;
+    private PropertyDetails prop2;
 
-	    @BeforeEach
-	    void setUp() {
-	        property1 = new PropertyDetails();
-	        property1.setId(1L);
-	        property1.setLocation("New York");
+    @BeforeEach
+    void setUp() {
+        prop1 = new PropertyDetails();
+        prop1.setId("1");
+        prop1.setTitle("Test Property 1");
+        prop1.setDescription("Desc1");
+        prop1.setPrice(500);
+        prop1.setLocation("Location1");
 
-	        property2 = new PropertyDetails();
-	        property2.setId(2L);
-	        property2.setLocation("London");
-	    }
+        prop2 = new PropertyDetails();
+        prop2.setId("2");
+        prop2.setTitle("Test Property 2");
+        prop2.setDescription("Desc2");
+        prop2.setPrice(1000);
+        prop2.setLocation("Location2");
+    }
 
-	    // ---------------- saveDetails ----------------
-	    @Test
-	    void testSaveDetails() {
-	        service.saveDetails(property1);
+    @Test
+    void saveDetails_ShouldCallRepositorySave() {
+        // Arrange
+        when(repository.save(prop1)).thenReturn(prop1);
 
-	        verify(repository, times(1)).save(property1);
-	    }
+        // Act
+        customerService.saveDetails(prop1);
 
-	    // ---------------- getProperties ----------------
-	    @Test
-	    void testGetProperties() {
-	        when(repository.findAll()).thenReturn(Arrays.asList(property1, property2));
+        // Assert
+        verify(repository, times(1)).save(prop1);
+    }
 
-	        List<PropertyDetails> result = service.getProperties();
+    @Test
+    void getProperties_ShouldReturnAllProperties() {
+        // Arrange
+        List<PropertyDetails> list = Arrays.asList(prop1, prop2);
+        when(repository.findAll()).thenReturn(list);
 
-	        assertThat(result).hasSize(2).containsExactly(property1, property2);
-	        verify(repository, times(1)).findAll();
-	    }
+        // Act
+        List<PropertyDetails> result = customerService.getProperties();
 
-	    // ---------------- editProperty ----------------
-	    @Test
-	    void testEditProperty_Success() {
-	        PropertyDetails updated = new PropertyDetails();
-	        updated.setLocation("San Francisco");
+        // Assert
+        assertThat(result).hasSize(2)
+                          .contains(prop1, prop2);
+        verify(repository, times(1)).findAll();
+    }
 
-	        when(repository.findById(1L)).thenReturn(Optional.of(property1));
-	        when(repository.save(updated)).thenReturn(updated);
+    @Test
+    void editProperty_WhenExistingId_ShouldUpdateAndSave() {
+        // Arrange
+        String id = prop1.getId();
+        when(repository.findById(id)).thenReturn(Optional.of(prop1));
+        PropertyDetails update = new PropertyDetails();
+        update.setTitle("Updated Title");
+        update.setDescription("Updated Desc");
+        update.setPrice(750);
+        update.setLocation("NewLocation");
 
-	        PropertyDetails result = service.editProperty(1L, updated);
+        when(repository.save(any(PropertyDetails.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-	        assertThat(result).isNotNull();
-	        assertThat(result.getLocation()).isEqualTo("San Francisco");
-	        verify(repository, times(1)).findById(1L);
-	        verify(repository, times(1)).save(updated);
-	    }
+        // Act
+        PropertyDetails saved = customerService.editProperty(id, update);
 
-	    @Test
-	    void testEditProperty_NotFound() {
-	        PropertyDetails updated = new PropertyDetails();
-	        updated.setLocation("San Francisco");
+        // Assert
+        assertThat(saved.getTitle()).isEqualTo("Updated Title");
+        assertThat(saved.getLocation()).isEqualTo("NewLocation");
+        verify(repository, times(1)).findById(id);
+        verify(repository, times(1)).save(update);
+    }
 
-	        when(repository.findById(5L)).thenReturn(Optional.empty());
+    @Test
+    void editProperty_WhenNonExistingId_ShouldReturnNull() {
+        // Arrange
+        String id = "nonExistId";
+        when(repository.findById(id)).thenReturn(Optional.empty());
 
-	        PropertyDetails result = service.editProperty(5L, updated);
+        // Act
+        PropertyDetails result = customerService.editProperty(id, prop2);
 
-	        assertThat(result).isNull();
-	        verify(repository, times(1)).findById(5L);
-//	        verify(repository, never()).save(updated);
-	    }
+        // Assert
+        assertThat(result).isNull();
+        verify(repository, times(1)).findById(id);
+        verify(repository, times(1)).save(any(PropertyDetails.class));
+    }
 
-	    // ---------------- deleteProperty ----------------
-	    @Test
-	    void testDeleteProperty() {
-	        service.deleteProperty(1L);
+    @Test
+    void getPropertyById_WhenFound_ShouldReturnProperty() throws Exception {
+        // Arrange
+        String id = prop2.getId();
+        when(repository.findById(id)).thenReturn(Optional.of(prop2));
 
-	        verify(repository, times(1)).deleteById(1L);
-	    }
+        // Act
+        PropertyDetails result = customerService.getPropertyById(id);
 
+        // Assert
+        assertThat(result).isEqualTo(prop2);
+        verify(repository, times(1)).findById(id);
+    }
+
+    @Test
+    void getPropertyById_WhenNotFound_ShouldThrowException() {
+        // Arrange
+        String id = "missingId";
+        when(repository.findById(id)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(Exception.class,
+                     () -> customerService.getPropertyById(id));
+        verify(repository, times(1)).findById(id);
+    }
+
+    @Test
+    void deleteProperty_ShouldCallRepositoryDeleteById() {
+        // Arrange
+        String id = prop1.getId();
+
+        // Act
+        customerService.deleteProperty(id);
+
+        // Assert
+        verify(repository, times(1)).deleteById(id);
+    }
 }

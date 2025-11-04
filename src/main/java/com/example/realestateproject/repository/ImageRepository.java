@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository;
 import com.example.realestateproject.entity.Image;
 
 @Repository
-public interface ImageRepository extends MongoRepository<Image,String>{
+public interface ImageRepository extends MongoRepository<Image,Long>{
       
 }

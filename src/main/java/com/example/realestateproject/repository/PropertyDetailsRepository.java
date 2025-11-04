@@ -11,13 +11,13 @@ import org.springframework.stereotype.Repository;
 import com.example.realestateproject.entity.PropertyDetails;
 
 @Repository
-public interface PropertyDetailsRepository extends MongoRepository<PropertyDetails,Long> {
+public interface PropertyDetailsRepository extends MongoRepository<PropertyDetails,String> {
 
-	@Query(value = "select * from PropertyDetails p where p.location like %:keyword% or p.type like %:keyword%"
-			+ "or p.price like %:keyword% ")
-	 List<PropertyDetails> findByKeyword(@Param("keyword") String keyword);
-	
-//	PropertyDetails findById(int id);
-//	
-//	PropertyDetails deleteById(int id);
+	 @Query("{ '$or': [ " +
+	           "  { 'location': { $regex: ?0, $options: 'i' } }, " +
+	           "  { 'type':     { $regex: ?0, $options: 'i' } }, " +
+	           "  { 'price':    { $eq:   ?1 } } " +
+	           "] }")
+	    List<PropertyDetails> findByKeywordRegexOrPrice(String keyword, Integer price);
+
 }

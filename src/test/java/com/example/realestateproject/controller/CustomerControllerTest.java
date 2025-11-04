@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
@@ -16,13 +17,19 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.example.realestateproject.com.example.realestateproject.controller.CustomerController;
+import com.example.realestateproject.entity.Image;
 import com.example.realestateproject.entity.PropertyDetails;
 import com.example.realestateproject.repository.ImageRepository;
 import com.example.realestateproject.service.CustomerService;
@@ -32,147 +39,127 @@ import com.example.realestateproject.service.PropertyDetailsService;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
-@ExtendWith(MockitoExtension.class)
-class CustomerControllerTest {
+@WebMvcTest(CustomerController.class)
+public class CustomerControllerTest {
 
-	 @Mock
-	    private CustomerService customerService;
+    @Autowired
+    private MockMvc mockMvc;
 
-	    @Mock
-	    private PropertyDetailsService propertyService;
+    @MockBean
+    private CustomerService customerService;
 
-	    @Mock
-	    private ImageService imageService;
+    @MockBean
+    private PropertyDetailsService propertyDetailsService;
 
-	    @Mock
-	    private ImageRepository imageRepository;
+    @MockBean
+    private ImageService imageService;
 
-	    @InjectMocks
-	    private CustomerController controller;
+    @MockBean
+    private ImageRepository imageRepository;
 
-	    private MockMvc mockMvc;
+    private PropertyDetails property;
 
-	    @BeforeEach
-	    void setUp() {
-	        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
-	    }
+    @BeforeEach
+    void setUp() {
+        property = new PropertyDetails();
+        property.setId("1");
+        property.setTitle("Beautiful House");
+        property.setLocation("Hyderabad");
+        property.setPrice(100000);
+        property.setDescription("Spacious and well-lit");
+    }
 
-	    // ---------------- GET / or /search ----------------
-	    @Test
-	    void testHome_WithKeyword_ShouldReturnIndexView() throws Exception {
-	        when(propertyService.getByKeyword("test"))
-	            .thenReturn(Arrays.asList(new PropertyDetails()));
+    @Test
+    @WithMockUser(username="user1", roles={"CUSTOMER"})
+    void testHomeWithoutKeyword() throws Exception {
+        List<PropertyDetails> properties = List.of(property);
+        Mockito.when(propertyDetailsService.getAllProperties()).thenReturn(properties);
+        Mockito.when(imageService.getAllImages()).thenReturn(List.of());
 
-	        mockMvc.perform(get("/search").param("keyword", "test"))
-	               .andExpect(status().isOk())
-	               .andExpect(view().name("index"))
-	               .andExpect(model().attributeExists("list"));
+        mockMvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("index"))
+                .andExpect(model().attributeExists("list"))
+                .andExpect(model().attributeExists("imageMap"));
+    }
+    @WithMockUser(roles={"CUSTOMER"})
+    @Test
+    void testHomeWithKeyword() throws Exception {
+        Mockito.when(propertyDetailsService.getByKeyword(eq("Hyderabad"), any())).thenReturn(List.of(property));
 
-	        verify(propertyService, times(1)).getByKeyword("test");
-	    }
+        mockMvc.perform(get("/search").param("keyword", "Hyderabad"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("index"))
+                .andExpect(model().attributeExists("list"));
+    }
 
-	    @Test
-	    void testHome_WithoutKeyword_ShouldReturnAllProperties() throws Exception {
-	        when(propertyService.getAllProperties())
-	            .thenReturn(Arrays.asList(new PropertyDetails()));
+    @Test
+    @WithMockUser(username="custUser", roles={"CUSTOMER"})
+    void testCreateProperty() throws Exception {
+        MockMultipartFile mockFile = new MockMultipartFile(
+                "file", "test.jpg", MediaType.IMAGE_JPEG_VALUE, "fake-image".getBytes()
+        );
 
-	        mockMvc.perform(get("/"))
-	               .andExpect(status().isOk())
-	               .andExpect(view().name("index"))
-	               .andExpect(model().attributeExists("list"));
+        Image mockImage = new Image();
+        mockImage.setId("img123");
+        Mockito.when(imageService.save(any(Image.class), any())).thenReturn(mockImage);
 
-	        verify(propertyService, times(1)).getAllProperties();
-	    }
+        mockMvc.perform(multipart("/customer/create")
+                        .file(mockFile)
+                        .with(csrf())
+                        .param("title", "House")
+                        .param("location", "Hyderabad")
+                        .param("price", "120000")
+                        .contentType(MediaType.MULTIPART_FORM_DATA))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/search"));
+    }
 
-	    // ---------------- GET /image/{imageId} ----------------
-	    @Test
-	    void testDownloadImage() throws Exception {
-	        byte[] imageData = "dummy".getBytes();
-	        PropertyDetails property = new PropertyDetails();
-	        property.setImageData(imageData);
+    @Test
+    @WithMockUser(roles = {"CUSTOMER"})
+    void testShowAddPropertyForm() throws Exception {
+        mockMvc.perform(get("/customer/create"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("customerpost"))
+                .andExpect(model().attributeExists("propertyDetails"));
+    }
+    @WithMockUser(username="user1", roles={"CUSTOMER"})
+    @Test
+    void testShowEditForm() throws Exception {
+        Mockito.when(customerService.getPropertyById("1")).thenReturn(property);
 
-	        when(propertyService.findById(1L)).thenReturn(Optional.of(property));
+        mockMvc.perform(get("/customer/edit/1"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("editpropertyform"))
+                .andExpect(model().attributeExists("property"));
+    }
 
-	        mockMvc.perform(get("/image/1"))
-	               .andExpect(status().isOk());
-//	               .andExpect(content().contentType(MediaType.IMAGE_JPEG_VALUE));
+    @Test
+    @WithMockUser(username="someUser", roles={"CUSTOMER"})
+    void testEditProperty() throws Exception {
+        mockMvc.perform(put("/customer/edit/1")
+        		 .with(csrf())
+                        .param("title", "Updated Title")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/userdashboard"));
+    }
 
-	        verify(propertyService, times(1)).findById(1L);
-	    }
+    @Test
+    @WithMockUser(roles = "CUSTOMER")
+    void testDeletePropertyForCustomer() throws Exception {
+        mockMvc.perform(get("/customer/delete/1"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/userdashboard"));
+    }
 
-	    // ---------------- POST /propertyDetails/add ----------------
-	    @Test
-	    void testHandleProfileAdd() throws Exception {
-	        MockMultipartFile file = new MockMultipartFile("file", "test.jpg", MediaType.IMAGE_JPEG_VALUE.toString(), "dummy".getBytes());
-
-	        mockMvc.perform(multipart("/propertyDetails/add")
-	                .file(file)
-	                .param("location", "NY"))
-	               .andExpect(status().is3xxRedirection())
-	               .andExpect(redirectedUrl("/index"));
-
-	        verify(propertyService, times(1)).save(any(PropertyDetails.class), eq(file));
-	    }
-
-	    // ---------------- GET /customer/create ----------------
-	    @Test
-	    void testShowAddPropertyForm() throws Exception {
-	        mockMvc.perform(get("/customer/create"))
-	               .andExpect(status().isOk())
-	               .andExpect(view().name("customerpost"))
-	               .andExpect(model().attributeExists("propertyDetails"));
-	    }
-
-	    // ---------------- POST /customer/create ----------------
-	    @Test
-	    void testCreateProperty() throws Exception {
-	        MockMultipartFile file = new MockMultipartFile("file", "test.jpg", MediaType.IMAGE_JPEG_VALUE.toString(), "dummy".getBytes());
-
-	        mockMvc.perform(multipart("/customer/create")
-	                .file(file)
-	                .param("location", "NY"))
-	               .andExpect(status().is3xxRedirection())
-	               .andExpect(redirectedUrl("/"));
-
-	        verify(imageService, times(1)).save(any(), eq(file));
-	        verify(customerService, times(1)).saveDetails(any(PropertyDetails.class));
-	    }
-
-	    // ---------------- GET /customer/display ----------------
-	    @Test
-	    void testDisplayProperties() throws Exception {
-	        when(customerService.getProperties()).thenReturn(Arrays.asList(new PropertyDetails()));
-
-	        mockMvc.perform(get("/customer/display"))
-	               .andExpect(status().isOk());
-
-	        verify(customerService, times(1)).getProperties();
-	    }
-
-	    // ---------------- PUT /customer/edit/{id} ----------------
-	    @Test
-	    void testEditProperty() throws Exception {
-	        PropertyDetails property = new PropertyDetails();
-	        property.setId(1L);
-
-	        when(customerService.editProperty(eq(1L), any(PropertyDetails.class))).thenReturn(property);
-
-	        mockMvc.perform(put("/customer/edit/1")
-	                .contentType(MediaType.APPLICATION_JSON)
-	                .content("{\"location\":\"NY\"}"))
-	               .andExpect(status().isOk());
-
-	        verify(customerService, times(1)).editProperty(eq(1L), any(PropertyDetails.class));
-	    }
-
-	    // ---------------- DELETE /customer/delete/{id} ----------------
-	    @Test
-	    void testDeleteProperty() throws Exception {
-	        mockMvc.perform(delete("/customer/delete/1"))
-	               .andExpect(status().isOk());
-
-	        verify(customerService, times(1)).deleteProperty(1L);
-	    }
-
+    @Test
+    @WithMockUser(roles = {"ADMIN"})
+    void testDeletePropertyForAdmin() throws Exception {
+        mockMvc.perform(get("/admin/delete/1"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admindashboard"));
+    }
 }

@@ -10,21 +10,27 @@ public class Image {
 	@Id
     private String id;
   
-    
-    private String imageName;
-    
-	private byte[] data;
-	
-	 public String getDataBase64() {
-	        return Base64.encodeBase64String(this.data);
-	    } 
-	
-    public String getId() {
+	public String getId() {
 		return id;
 	}
 	public void setId(String id) {
 		this.id = id;
 	}
+	private String imageName;
+    
+    private String contentType;
+    
+	public String getContentType() {
+		return contentType;
+	}
+	public void setContentType(String contentType) {
+		this.contentType = contentType;
+	}
+	private byte[] data;
+	
+//	 public String getDataBase64() {
+//	        return Base64.encodeBase64String(this.data);
+//	    } 
 	
 	public String getImageName() {
 		return imageName;

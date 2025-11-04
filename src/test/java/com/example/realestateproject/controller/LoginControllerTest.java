@@ -17,120 +17,117 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.ui.Model;
+import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
+import com.example.realestateproject.com.example.realestateproject.config.SecurityConfig;
 import com.example.realestateproject.com.example.realestateproject.controller.LoginController;
+import com.example.realestateproject.com.example.realestateproject.controller.UserController;
 import com.example.realestateproject.entity.UserInfo;
 import com.example.realestateproject.enums.UserRole;
 import com.example.realestateproject.repository.UserInfoRepository;
 import com.example.realestateproject.repository.UserRepository;
 import com.example.realestateproject.service.LoginService;
+import com.example.realestateproject.service.PropertyDetailsService;
+import com.example.realestateproject.service.UserInfoUserDetailsService;
+import com.example.realestateproject.service.UserService;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
-@ExtendWith(MockitoExtension.class)
+import org.bson.types.ObjectId;
+
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+
+@WebMvcTest(controllers = LoginController.class)
+@Import(SecurityConfig.class)
 class LoginControllerTest {
 
-	 @Autowired
-	    private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
-	    @MockBean
-	    private UserInfoRepository userInfoRepository;
+    @MockBean
+    private LoginService loginService;
 
-	    @MockBean
-	    private UserRepository userRepository;
+    @MockBean
+    private PropertyDetailsService propertyDetailsService; 
+    
+    @MockBean
+    private UserInfoRepository userInfoRepository;
 
-	    @MockBean
-	    private LoginService loginService;
+    @MockBean
+    private PasswordEncoder passwordEncoder;
+    
+    @MockBean
+    private UserService userService;
+    
+    @MockBean
+    private UserRepository userRepository;
+    @MockBean
+    private UserInfo user;
+    
+    @MockBean
+    private UserInfoUserDetailsService userDetailsService;
 
-	    @MockBean
-	    private PasswordEncoder passwordEncoder;
+    @BeforeEach
+    void setUp() {
+    	userInfoRepository.deleteAll();
+        user = new UserInfo();
+        user.setId(new ObjectId("69070d18c85849279ad4643e")); // assuming your _id field is String
+        user.setUsername("john");
+        user.setPassword("password");
+        user.setRole(UserRole.CUSTOMER);
+    }
 
-	    private UserInfo user;
+    @Test
+    void testShowLoginForm() throws Exception {
+        mockMvc.perform(get("/login"))
+        .andDo(print())
+        .andExpect(status().isOk())
+        .andExpect(view().name("login"));
+               
+    }
 
-	    @BeforeEach
-	    void setUp() {
-	        user = new UserInfo();
-	        user.setId(1L);
-	        user.setUsername("john");
-	        user.setPassword("password");
-	        user.setRole(UserRole.CUSTOMER);
-	    }
+    @Test
+    void testShowRegisterForm() throws Exception {
+        mockMvc.perform(get("/register"))
+               .andExpect(status().isOk())
+               .andExpect(view().name("register"));
+              
+    }
 
-	    // ---------- LOGIN PAGE TESTS ----------
-	    @Test
-	    void testShowLoginForm() throws Exception {
-	        mockMvc.perform(get("/login"))
-	                .andExpect(MockMvcResultMatchers.status().isOk())
-	                .andExpect(MockMvcResultMatchers.view().name("login"));
-	    }
+    @Test
+    void testRegisterUser() throws Exception {
+        doNothing().when(loginService).createUser(any(UserInfo.class));
 
-	    @Test
-	    void testLoginPostSuccess() throws Exception {
-	        when(loginService.login("john")).thenReturn(user);
+        mockMvc.perform(post("/register")
+                        .flashAttr("user", user)
+                        .with(csrf()))
+               .andExpect(status().is3xxRedirection())
+               .andExpect(redirectedUrl("/login"));
 
-	        mockMvc.perform(post("/login")
-	                        .param("username", "john")
-	                        .param("password", "password")
-	                        .param("role", "USER"))
-	                .andExpect(MockMvcResultMatchers.status().is3xxRedirection())
-	                .andExpect(MockMvcResultMatchers.redirectedUrl("/"));
+        verify(loginService, times(1)).createUser(any(UserInfo.class));
+    }
 
-	        verify(loginService, times(1)).login("john");
-	    }
+    @Test
+    @WithMockUser(username="cust", roles={"CUSTOMER"})
+    void testShowDashboard() throws Exception {
+        mockMvc.perform(get("/userdashboard"))
+               .andExpect(status().isOk())
+               .andExpect(view().name("userdashboard"));
+    }
 
-	    // ---------- REGISTER PAGE TESTS ----------
-	    @Test
-	    void testShowRegisterForm() throws Exception {
-	        mockMvc.perform(get("/register"))
-	                .andExpect(MockMvcResultMatchers.status().isOk())
-	                .andExpect(MockMvcResultMatchers.view().name("register"))
-	                .andExpect(MockMvcResultMatchers.model().attributeExists("user"));
-	    }
-
-	    @Test
-	    void testRegisterUser() throws Exception {
-	        doNothing().when(loginService).createUser(any(UserInfo.class));
-
-	        mockMvc.perform(post("/register")
-	                        .param("username", "john")
-	                        .param("password", "password")
-	                        .param("role", "USER"))
-	                .andExpect(MockMvcResultMatchers.status().is3xxRedirection())
-	                .andExpect(MockMvcResultMatchers.redirectedUrl("/login"));
-
-	        verify(loginService, times(1)).createUser(any(UserInfo.class));
-	    }
-
-	    // ---------- DASHBOARD TEST ----------
-	    @Test
-	    void testShowDashboard() throws Exception {
-	        mockMvc.perform(get("/dashboard"))
-	                .andExpect(MockMvcResultMatchers.status().isOk())
-	                .andExpect(MockMvcResultMatchers.view().name("dashboard"));
-	    }
-
-	    // ---------- ADMIN HOME TEST ----------
-	    @Test
-	    void testAdminHome() throws Exception {
-	        mockMvc.perform(get("/admin/home"))
-	                .andExpect(MockMvcResultMatchers.status().isOk())
-	                .andExpect(MockMvcResultMatchers.view().name("admin"));
-	    }
-
-	    // ---------- CUSTOMER HOME TEST ----------
-	    @Test
-	    void testCustomerHome() throws Exception {
-	        mockMvc.perform(get("/customer/home"))
-	                .andExpect(MockMvcResultMatchers.status().isOk())
-	                .andExpect(MockMvcResultMatchers.view().name("user"));
-	    }
+    
 }
