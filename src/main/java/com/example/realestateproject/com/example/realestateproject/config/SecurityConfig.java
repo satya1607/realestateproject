@@ -92,4 +92,10 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration auth) throws Exception {
         return auth.getAuthenticationManager();
     }
+    
+    @Autowired
+    public void configureGlobal(AuthenticationManagerBuilder auth) {
+        auth.authenticationProvider(authProvider());
+
+    }
 }    
